@@ -2,7 +2,9 @@
 # Needs privilege-escalation to install `jq` and work in the global $PATH dir
 # @todo: I guess this _could_ be re-done to use a non-sudo user path added in .bashrc :thinking_face:
 # Run via:
-#   ansible-playbook local-setup.yaml -e "ansible_sudo_pass=your_sudo_password"
+#   USERPASS='your_sudo_password' # use single-quotes, because you probably have special chars
+#   ansible-playbook rke-k8s-setup.yaml -e "ansible_sudo_pass='${USERPASS}'" # full book
+#   ansible-playbook rke-k8s-setup.yaml -e "ansible_sudo_pass='${USERPASS}'" --tags "skaffold" # only specific tags
 # You may or may not need to create a ~/.kube/config file from your rancher cluster dashboard
 
 - name: Local Setup for Cloud-life
@@ -12,6 +14,7 @@
   vars:
     bindir: /usr/local/bin
     homedir: "{{ lookup('env', 'HOME') }}"
+    bashrc: "{{homedir}}/.bashrc"
     tmpdir: "{{ lookup('env', 'TMPDIR') | default('/tmp',true) }}"
 
   tasks:
@@ -56,6 +59,20 @@
           include_tasks: "tasks/rancher-cli.yaml"
       tags:
         - rancher
+
+    - block:
+        - name: Install skaffold
+          get_url:
+            url: "https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64"
+            dest: "{{bindir}}"
+          become: yes
+
+        - blockinfile:
+            path: "{{bashrc}}"
+            marker: "# {mark} ansible - skaffold completion"
+            block: source <(skaffold completion bash)
+      tags:
+        - skaffold
 
     - block:
         - name: Add bash completion
