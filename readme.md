@@ -8,6 +8,7 @@
             - If this is the first install, you'll need to init `~/.kube/config` yourself. 
         - [Helm](https://helm.sh/) (with bash completion)
         - [Kubens/Kubectx](https://github.com/ahmetb/kubectx/), 
+            - installs binaries as `kns` and `kctx` so they don't clash with `kubectl` tab-complete :) 
         - [Kompose](https://kompose.io/) (with bash completion)
         - [Skaffold](https://skaffold.dev/) (with bash completion)
         - [Rancher CLI](https://github.com/rancher/cli)
