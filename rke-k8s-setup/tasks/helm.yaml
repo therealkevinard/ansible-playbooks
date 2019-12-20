@@ -21,8 +21,11 @@
 - copy:
     src: "{{tmpdir}}/helm/linux-amd64/helm"
     dest: "{{bindir}}/helm"
-    owner: root
-    group: root
     mode: '0755'
     remote_src: yes
   become: yes
+
+- blockinfile:
+    path: "{{bashrc}}"
+    marker: "# {mark} ansible - helm completion"
+    block: source <(helm completion bash)

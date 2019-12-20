@@ -64,7 +64,11 @@
         - name: Install skaffold
           get_url:
             url: "https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64"
-            dest: "{{bindir}}"
+            dest: "{{bindir}}/skaffold"
+          become: yes
+        - file:
+            path: "{{bindir}}/skaffold"
+            mode: '0755'
           become: yes
 
         - blockinfile:
@@ -73,15 +77,3 @@
             block: source <(skaffold completion bash)
       tags:
         - skaffold
-
-    - block:
-        - name: Add bash completion
-          blockinfile:
-            path: "{{homedir}}/.bashrc"
-            marker: "#-------/ {mark} ansible-managed block - cloud-setup-completion /"
-            block: |
-              source <(kubectl completion bash)
-              source <(kompose completion bash)
-              source <(helm completion bash)
-      tags:
-        - completion

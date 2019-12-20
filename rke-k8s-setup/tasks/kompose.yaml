@@ -13,7 +13,10 @@
 
 - file:
     path: "{{bindir}}/kompose"
-    owner: root
-    group: root
     mode: '0755'
   become: yes
+
+- blockinfile:
+    path: "{{bashrc}}"
+    marker: "# {mark} ansible - kompose completion"
+    block: source <(kompose completion bash)
