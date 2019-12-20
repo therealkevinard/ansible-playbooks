@@ -1,0 +1,19 @@
+
+- name: get kcl-stable version
+  uri:
+    url: https://storage.googleapis.com/kubernetes-release/release/stable.txt
+    return_content: yes
+  register: kcl_stable
+
+- set_fact:
+    kcl_stable: "{{kcl_stable.content | regex_replace('\\n', '') }}"
+
+- get_url:
+    url: "https://storage.googleapis.com/kubernetes-release/release/{{kcl_stable}}/bin/linux/amd64/kubectl"
+    dest: "{{bindir}}"
+
+- file:
+    path: "{{bindir}}/kubectl"
+    owner: root
+    group: root
+    mode: '0755'

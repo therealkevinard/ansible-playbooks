@@ -1,0 +1,12 @@
+#    - name: Apply kubeconfig
+# rancher login -t {{rancher_token}} {{rancher_endpoint}} &&
+# rancher clusters kubeconfig {{rancher_cluster_name}} > ~/.kube/config
+
+- file:
+    path: "{{homedir}}/.kube"
+
+- name: Apply kubeconfig
+  shell:
+    cmd: |
+      rancher login -t {{rancher_token}} {{rancher_endpoint}} \
+        && rancher clusters kubeconfig {{rancher_cluster_name}} > ~/.kube/config-{{rancher_cluster_name}}

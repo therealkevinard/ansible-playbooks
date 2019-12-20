@@ -1,0 +1,70 @@
+# Bootstrap the local CLI tools, etc needed to work with an rke k8s cluster
+# Needs privilege-escalation to install `jq` and work in the global $PATH dir
+# @todo: I guess this _could_ be re-done to use a non-sudo user path added in .bashrc :thinking_face:
+# Run via:
+#   ansible-playbook local-setup.yaml -e "ansible_sudo_pass=your_sudo_password"
+# You may or may not need to create a ~/.kube/config file from your rancher cluster dashboard
+
+- name: Local Setup for Cloud-life
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    bindir: /usr/local/bin
+    homedir: "{{ lookup('env', 'HOME') }}"
+    tmpdir: "{{ lookup('env', 'TMPDIR') | default('/tmp',true) }}"
+
+  tasks:
+    - name: dependencies and prerequisites
+      block:
+        - file:
+            path: "{{bindir}}"
+            state: directory
+            mode: '0755'
+        - apt:
+            name: jq
+            state: present
+      become: yes
+
+    - block:
+        - name: Install kubectl
+          include_tasks: "tasks/kubectl.yaml"
+      become: yes
+      tags:
+        - kubectl
+
+    - block:
+        - name: Install kubecontext / kubens
+          include_tasks: "tasks/kubectx.yaml"
+      tags:
+        - kubectx
+
+    - block:
+        - name: Install kompose
+          include_tasks: "tasks/kompose.yaml"
+      tags:
+        - kompose
+
+    - block:
+        - name: Install helm
+          include_tasks: "tasks/helm.yaml"
+      tags:
+        - helm
+
+    - block:
+        - name: Install rancher-cli
+          include_tasks: "tasks/rancher-cli.yaml"
+      tags:
+        - rancher
+
+    - block:
+        - name: Add bash completion
+          blockinfile:
+            path: "{{homedir}}/.bashrc"
+            marker: "#-------/ {mark} ansible-managed block - cloud-setup-completion /"
+            block: |
+              source <(kubectl completion bash)
+              source <(kompose completion bash)
+              source <(helm completion bash)
+      tags:
+        - completion
