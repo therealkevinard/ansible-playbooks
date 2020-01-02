@@ -1,0 +1,81 @@
+# run this with the generated inventory file
+# first run the node csv tool to parse google inventory sheet to yml
+# exec play a la
+#   ansible-playbook -i ${path/to/inventory.yaml} --check -vv gitops-migrations.yml
+#
+- name: kubernetes migrations
+  hosts: '{{inventory_host}}'
+  serial:
+    - 1
+
+  # xxx vars should be passed in via extra-vars, a la `ansible-playbook -i ${inventory_file} --extra-vars "@run-vars.json" -vv gitops-migrations.yml`
+  vars:
+    # general
+    inventory_host: xxx # i could use --limit. ...or i could use a var.
+    ops_prefix: ops # dir prefix. not very important, but maybe one day.
+    run_timestamp: "{{ansible_facts.date_time.iso8601}}"
+    # gitlab auth, remote repo
+    gitlab_user: xxx
+    gitlab_token: xxx
+    gitlab_group: xxx
+    gitlab_repo: "https://{{gitlab_user}}:{{gitlab_token}}@gitlab.com/{{gitlab_group}}/{{ops_prefix}}_{{inventory_hostname}}.git"
+    #
+    remote_root: "/home/{{acct_user}}" # @todo: this is only relevant for centos/whm. other platforms will have different roots
+    remote_opsdir: "{{remote_root}}/.{{ops_prefix}}_{{inventory_hostname}}"
+
+  tasks:
+    #------/ prepare
+    - name: initialize ops directory...
+      include_tasks: "tasks/gitops-dir-init.yml"
+
+    #------/ archive services
+    # look for an ops makefile in home
+    - stat:
+        path: "{{remote_root}}/.rwm-ops_{{inventory_hostname}}.mk"
+      register: makefile
+
+    # Plan A: use remote makefile
+    # this takes a preconfigured makefile on the remote end, but follows cleaner SOC - the run config is in the service itself
+    # passing params to target requires mk vars to be set a la `dir_target?=/some/path` [ref create-default-mk.yml]
+    - name: run make target
+      make:
+        target: rebuild_repo
+        file: "{{remote_root}}/.{{ops_prefix}}_{{inventory_hostname}}.mk"
+        chdir: "{{remote_root}}"
+        params:
+          service_name: web
+          ops_base: "{{remote_opsdir}}"
+      when: makefile.stat.exists
+
+    # fallback: wordpress
+    - include_tasks: "tasks/wordpress-fallback.yml"
+      vars:
+        service_name: web
+        wp_cli_bin_path: /usr/bin/wp
+      when: "platform == 'wordpress' and not makefile.stat.exists"
+
+    #------/ save our work
+    - name: git commit/push
+      shell: |
+        curr_branch=$(git rev-parse --abbrev-ref HEAD)
+        git add -A
+        git commit -m 'devops monorepo autocommit - {{run_timestamp}}'
+        git push -u origin $curr_branch
+        exit 0
+      args:
+        chdir: "{{remote_opsdir}}"
+
+    #------/ remove our scratchpad
+    - name: destroy ops directory...
+      file:
+        path: "{{remote_opsdir}}"
+        state: absent
+
+    #------/ repair any permissions we may have touched
+    - name: repair/reset permissions...
+      shell: |
+        find . -type d | while read folder ; do chmod 755 "$folder" ; done
+        find . -type f | while read file ; do chmod 644 "$file" ; done
+        exit 0
+      args:
+        chdir: "{{docroot}}"

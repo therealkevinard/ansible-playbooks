@@ -1,0 +1,50 @@
+# Initialize the ops directory as an empty, git-tracked dir.
+# Pull from remote and rm -rf all contents; or create a new one with no content.
+# Effectively: Start from a clean slate (with history) on each run
+
+# destroy tmp ops directory. Should be removed by previous run, but if it was interrupted...
+- file:
+    path: "{{remote_opsdir}}"
+    state: absent
+
+# Try to clone by repo url. If that fails, init a new git repo
+- name: git clone or init
+  block:
+    - name: clone ops from remote
+      shell: "git clone {{gitlab_repo}} {{remote_opsdir}}"
+  rescue:
+    - name: create clean ops dir
+      file:
+        path: "{{remote_opsdir}}"
+        state: directory
+        mode: '0755'
+    - shell: "git init && git remote add origin {{gitlab_repo}}"
+      args:
+        chdir: "{{remote_opsdir}}"
+
+# Purge contents - all except .git
+- name: Vacate ops directory
+  block:
+    #-- dirs
+    - find:
+        paths: "{{remote_opsdir}}"
+        file_type: directory
+        excludes:
+          - ".git"
+      register: opsdir_children
+    - file:
+        path: "{{item.path}}"
+        state: absent
+      with_items: "{{opsdir_children['files']}}"
+
+    #-- files
+    - find:
+        paths: "{{remote_opsdir}}"
+        file_type: file
+        excludes:
+          - ".git"
+      register: opsdir_children
+    - file:
+        path: "{{item.path}}"
+        state: absent
+      with_items: "{{opsdir_children['files']}}"

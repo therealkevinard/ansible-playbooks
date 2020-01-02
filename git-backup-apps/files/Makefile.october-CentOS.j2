@@ -1,0 +1,54 @@
+# Here Be Dragons
+# | This file is created and consumed by the ops routine.
+# | Probably shouldn't edit it, unless you absolutely know what's going on.
+# | last created: {{ansible_facts.date_time.iso8601}}
+# these targets are used by auto-routines in the ops box.
+
+service_name?=web
+home?=/home/{{acct_user}}
+ops_base?={{remote_opsdir}}
+service_dir?=$(ops_base)/$(service_name)
+docroot?=$(home)/public_html
+
+rsync_args?=--exclude ".git" --exclude "node_modules"
+
+db_user?={{db_user}}
+db_pass?={{db_pass}}
+db_name?={{db_name}}
+
+## rebuild_repo is the target executed by the snapshot tasks
+## very important that its name doesn't change, and that it is always the first target in the build
+rebuild_repo:build_directories cp_config cp_data cp_media cp_plugins cp_themes
+
+## It's assumed that ops_base was created - and confirmed empty - by the dir init tasks
+build_directories:
+	mkdir -p $(service_dir)
+	cd $(service_dir) && mkdir config data media plugins themes
+
+## Copy config assets
+cp_config:
+	rsync -a $(rsync_args) \
+		$(docroot)/config/ \
+		$(service_dir)/config/
+
+## Fill data dump
+cp_data:
+	mysqldump $(db_name) -u$(db_user) -p'$(db_pass)' > $(service_dir)/data/dump.sql
+
+## Copy media assets
+cp_media:
+	rsync -a $(rsync_args) \
+		$(docroot)/storage/app/ \
+		$(service_dir)/media/app_storage/
+
+## Copy plugins
+cp_plugins:
+	rsync -a $(rsync_args) \
+		$(docroot)/plugins/ \
+		$(service_dir)/plugins/
+
+## Copy themes
+cp_themes:
+	rsync -a $(rsync_args) \
+		$(docroot)/themes/ \
+		$(service_dir)/themes/

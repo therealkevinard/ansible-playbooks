@@ -1,0 +1,3 @@
+[submodule "git-backup-apps/roles/ansible.wp-cli"]
+	path = git-backup-apps/roles/ansible.wp-cli
+	url = https://github.com/sbaerlocher/ansible.wp-cli.git

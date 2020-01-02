@@ -1,0 +1,19 @@
+# Creates a default, templated makefile for ops
+
+- name: Template Makefile
+  hosts: '{{inventory_host}}'
+  serial:
+    - 1
+
+  vars:
+    inventory_host: missginnysenglishtoffeecom
+    ops_prefix: ops # dir prefix. not very important, but maybe one day.
+    remote_root: "/home/{{acct_user}}" # note: this relates to whm/centos; digitalocean/docker-compose may be very different
+    remote_opsdir: "{{remote_root}}/.{{ops_prefix}}_{{inventory_hostname}}"
+
+  tasks:
+    - name: build makefile
+      template:
+        src: files/Makefile.{{platform}}-{{ansible_facts['distribution']|default('generic')}}.j2
+        dest: "{{remote_root}}/.{{ops_prefix}}_{{inventory_hostname}}.mk"
+        backup: yes

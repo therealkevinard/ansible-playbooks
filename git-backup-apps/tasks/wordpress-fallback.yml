@@ -1,0 +1,106 @@
+# Snapshot tasks specific to wordpress
+# Depends on wp-cli available on the host, so will install/upgrade on run
+# --------------------------------------------------
+- name: Install WP Cli Tooling
+  block:
+    - name: check for wp-cli installed
+      register: wpcli_exists
+      stat:
+        path: "{{wp_cli_bin_path}}"
+
+    - name: install wp-cli
+      when: not wpcli_exists.stat.exists
+      include_role:
+        name: ansible.wp-cli
+
+    - name: update wp-cli
+      when: wpcli_exists.stat.exists
+      include_role:
+        name: ansible.wp-cli
+
+    # confirm wp version
+    - shell: wp core version --allow-root
+      register: platform_version
+      args:
+        chdir: "{{docroot}}"
+    - set_fact:
+        platform_version: "{{platform_version.stdout}}"
+
+# remove revisr and legacy docroot gitops
+# @todo: This doesn't really belong in this playbook. Prune it out once the legacy setups are phased-out
+- name: Remove Legacy Devops
+  block:
+    - shell: wp plugin uninstall revisr --allow-root --deactivate
+      ignore_errors: yes
+      args:
+        chdir: "{{docroot}}"
+    - file:
+        path: "{{docroot}}/.git"
+        state: absent
+    - file:
+        path: "{{docroot}}/_rwmops"
+        state: absent
+    - file:
+        path: "{{docroot}}/wp-content/uploads/revisr-backups"
+        state: absent
+
+- name: Vacate Service Directory
+  block:
+    - set_fact:
+        service_root: "{{remote_opsdir}}/{{service_name}}"
+    - file:
+        path: "{{service_root}}"
+        state: absent
+    - file:
+        path: "{{service_root}}"
+        state: directory
+
+- name: Refill Service Directory
+  block:
+    # metadata file
+    - template:
+        src: files/metadata.j2
+        dest: "{{service_root}}/metadata"
+
+    # data <- mysqldump
+    - shell:
+        cmd: "mkdir -p {{service_root}}/data && wp db export --allow-root {{service_root}}/data/export.sql"
+      args:
+        chdir: "{{docroot}}"
+
+    #-- file ops use synchronize (rsync wrapper) with delegation to remote. effectively: rsync local-local
+    # config <- wp-config
+    - synchronize:
+        src: "{{docroot}}/wp-config.php"
+        dest: "{{service_root}}/config/"
+        rsync_opts:
+          - "--exclude=node_modules"
+          - "--exclude=.git"
+      delegate_to: "{{ inventory_hostname }}"
+
+    # plugins <- themes
+    - synchronize:
+        src: "{{docroot}}/wp-content/plugins/"
+        dest: "{{service_root}}/plugins/"
+        rsync_opts:
+          - "--exclude=node_modules"
+          - "--exclude=.git"
+      delegate_to: "{{ inventory_hostname }}"
+
+      # themes <- themes
+    - synchronize:
+        src: "{{docroot}}/wp-content/themes/"
+        dest: "{{service_root}}/themes/"
+        rsync_opts:
+          - "--exclude=node_modules"
+          - "--exclude=.git"
+      delegate_to: "{{ inventory_hostname }}"
+
+    # media <- uploads
+    - synchronize:
+        src: "{{docroot}}/wp-content/uploads/"
+        dest: "{{service_root}}/media/"
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=node_modules"
+      delegate_to: "{{ inventory_hostname }}"
