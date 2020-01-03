@@ -1,6 +1,10 @@
+Playbooks that have helped me out enough to share with others.  
+Mostly related to kubernetes/migration right now, but I'll add more when I bump into them. 
+
+---
 
 - [rke-k8s-setup](./rke-k8s-setup/rke-k8s-setup.yaml)  
-Installs **local** tooling for working with RKE Kubernetes  
+Installs **local** tooling for working with RKE Kubernetes. Not that the installs are complicated - just tedious. 
     - **Only tested on Ubuntu 18.04 / linux-amd64** 
     - uses voodoo magic to find latest versions via `github api | jq`  
     - Toolkit 
