@@ -4,8 +4,9 @@
 # Run via:
 #   USERPASS='your_sudo_password' # use single-quotes, because you probably have special chars
 #   ansible-playbook rke-k8s-setup.yaml -e "ansible_sudo_pass='${USERPASS}'" # full book
-#   ansible-playbook rke-k8s-setup.yaml -e "ansible_sudo_pass='${USERPASS}'" --tags "skaffold" # only specific tags
+#   ansible-playbook rke-k8s-setup.yaml -e "ansible_sudo_pass='${USERPASS}'" --tags "kustomize" # only specific tags
 # You may or may not need to create a ~/.kube/config file from your rancher cluster dashboard
+# @todo: would be better to check installed version before blindly calling get_url
 
 - name: Local Setup for Cloud-life
   hosts: localhost
@@ -47,6 +48,12 @@
           include_tasks: "tasks/kompose.yaml"
       tags:
         - kompose
+
+    - block:
+        - name: Install kustomize
+          include_tasks: "tasks/kustomize.yaml"
+      tags:
+        - kustomize
 
     - block:
         - name: Install helm

@@ -1,0 +1,18 @@
+- get_url:
+    url: "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+    dest: "{{tmpdir}}/install_kustomize"
+
+- file:
+    path: "{{tmpdir}}/install_kustomize"
+    mode: u+rwx
+
+- shell: "{{tmpdir}}/install_kustomize"
+  args:
+    chdir: "{{tmpdir}}"
+
+- copy:
+    src: "{{tmpdir}}/kustomize"
+    dest: "{{bindir}}/kustomize"
+    mode: '0755'
+    remote_src: yes
+  become: yes
