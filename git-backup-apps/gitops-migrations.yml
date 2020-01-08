@@ -14,6 +14,9 @@
     inventory_host: xxx # i could use --limit. ...or i could use a var.
     ops_prefix: ops # dir prefix. not very important, but maybe one day.
     run_timestamp: "{{ansible_facts.date_time.iso8601}}"
+    # git user
+    git_user: xxx
+    git_email: xxx
     # gitlab auth, remote repo
     gitlab_user: xxx
     gitlab_token: xxx

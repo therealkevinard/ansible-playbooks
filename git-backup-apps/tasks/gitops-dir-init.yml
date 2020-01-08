@@ -7,6 +7,12 @@
     path: "{{remote_opsdir}}"
     state: absent
 
+# setup git user
+- name: git user config
+  shell: |
+    git config --global user.name "{{git_user}}"
+    git config --global user.email "{{git_email}}"
+
 # Try to clone by repo url. If that fails, init a new git repo
 - name: git clone or init
   block:
