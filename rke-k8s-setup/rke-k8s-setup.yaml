@@ -49,11 +49,12 @@
       tags:
         - kompose
 
-    - block:
-        - name: Install kustomize
-          include_tasks: "tasks/kustomize.yaml"
-      tags:
-        - kustomize
+# @todo: this should be configurable - kustomize is built into kubectl (`-k` argument)
+#    - block:
+#        - name: Install kustomize
+#          include_tasks: "tasks/kustomize.yaml"
+#      tags:
+#        - kustomize
 
     - block:
         - name: Install helm
