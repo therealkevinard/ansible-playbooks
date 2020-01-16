@@ -30,32 +30,56 @@
     #------/ prepare
     - name: initialize ops directory...
       include_tasks: "tasks/gitops-dir-init.yml"
+      tags:
+        - init
 
     #------/ archive services
-    # look for an ops makefile in home
-    - stat:
-        path: "{{remote_root}}/.rwm-ops_{{inventory_hostname}}.mk"
-      register: makefile
 
     # Plan A: use remote makefile
     # this takes a preconfigured makefile on the remote end, but follows cleaner SOC - the run config is in the service itself
     # passing params to target requires mk vars to be set a la `dir_target?=/some/path` [ref create-default-mk.yml]
-    - name: run make target
-      make:
-        target: rebuild_repo
-        file: "{{remote_root}}/.{{ops_prefix}}_{{inventory_hostname}}.mk"
-        chdir: "{{remote_root}}"
-        params:
-          service_name: web
-          ops_base: "{{remote_opsdir}}"
-      when: makefile.stat.exists
+    - name: run make targets
+      block:
+        - name: install dependencies
+          apt:
+            name: make
+            state: latest
+            update_cache: yes
+          when: "ansible_facts['os_family'] == 'Debian'"
+
+        - stat:
+            path: "{{remote_root}}/.{{ops_prefix}}_{{inventory_hostname}}.mk"
+          register: makefile
+
+        - name: run make target
+          make:
+            target: rebuild_repo
+            file: "{{remote_root}}/.{{ops_prefix}}_{{inventory_hostname}}.mk"
+            chdir: "{{remote_root}}"
+            params:
+              service_name: web
+              ops_base: "{{remote_opsdir}}"
+          when: makefile.stat.exists
+      tags:
+        - run-make
 
     # fallback: wordpress
-    - include_tasks: "tasks/wordpress-fallback.yml"
-      vars:
-        service_name: web
-        wp_cli_bin_path: /usr/bin/wp
+    - name: run common wordpress tasks
+      block:
+        - include_tasks: "tasks/wordpress-fallback.yml"
+          name: include wordpress
+          vars:
+            service_name: web
+            wp_cli_bin_path: /usr/bin/wp
       when: "platform == 'wordpress' and not makefile.stat.exists"
+      tags:
+        - run-wp
+
+    # write metadata file
+    - name: write metadata file
+      template:
+        src: files/metadata.j2
+        dest: "{{remote_opsdir}}/web/metadata"
 
     #------/ save our work
     - name: git commit/push

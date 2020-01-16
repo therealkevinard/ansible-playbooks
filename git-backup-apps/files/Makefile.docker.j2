@@ -1,0 +1,64 @@
+# Here Be Dragons
+# | This file is created and consumed by the ops routine.
+# | Probably shouldn't edit it, unless you absolutely know what's going on.
+# | last created: {{ansible_facts.date_time.iso8601}}
+# these targets are used by auto-routines in the ops box.
+
+# for docker-compose stacks:
+# this file should be sibling to docker-compose.yml
+
+include .env # source the same .env the d/c file uses. this should have db connection and other vars
+
+service_name?=web
+ops_base?={{remote_opsdir}}
+service_dir?=$(ops_base)/$(service_name)
+
+# docker containers
+web_container=web_app_1
+db_container=web_db_1
+
+# auth, etc
+db_user?=$(MYSQL_USER)
+db_pass?=$(MYSQL_PASSWORD)
+db_name?=$(MYSQL_DATABASE)
+
+## rebuild_repo is the target executed by the snapshot tasks
+## very important that its name doesn't change, and that it is always the first target in the build
+rebuild_repo:cp_mono cp_support cp_data rm_excludables
+
+purge_service_dir:
+	# this is scary, but i'm alright with it because service_dir depends on a keyed-in absolute path.
+	rm -rf $(service_dir)
+
+## Copy bind-able assets (assuming common base img)
+##	assumes that service_dir was purged by the parent playbook.
+##	if not, there's the util task `purge_service_dir` that can be called on-demand
+cp_mono:
+	mkdir -p $(service_dir)
+	docker cp $(web_container):/app/apps $(service_dir)/apps
+	docker cp $(web_container):/app/config $(service_dir)/config
+	docker cp $(web_container):/app/content $(service_dir)/content
+	docker cp $(web_container):/app/plugins $(service_dir)/plugins
+	docker cp $(web_container):/app/storage/app $(service_dir)/storage_app
+	docker cp $(web_container):/app/storage/fonts $(service_dir)/storage_fonts
+	docker cp $(web_container):/app/storage/logs $(service_dir)/storage_logs
+	docker cp $(web_container):/app/themes $(service_dir)/themes
+	docker cp $(web_container):/app/wp-content $(service_dir)/wp-content
+
+## Copy support files
+cp_support:
+	mkdir -p $(service_dir)/_support
+	cp docker-compose.yml $(service_dir)/_support/
+	cp $(MAKEFILE_LIST) $(service_dir)/_support/
+
+## Fill data dump
+cp_data:
+	mkdir -p $(service_dir)/data
+	docker exec $(db_container) \
+		sh -c 'exec mysqldump $(db_name) -u$(db_user) -p"$(db_pass)"' \
+		> $(service_dir)/data/dump.sql
+
+## rm files that shouldn't be committed (docker cp doesn't support excludes a la rsync)
+rm_excludables:
+	-find $(service_dir) -type d -name '.git' -exec rm -rf {} \;
+	-find $(service_dir) -type d -name 'node_modules' -exec rm -rf {} \;

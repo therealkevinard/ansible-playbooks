@@ -57,11 +57,6 @@
 
 - name: Refill Service Directory
   block:
-    # metadata file
-    - template:
-        src: files/metadata.j2
-        dest: "{{service_root}}/metadata"
-
     # data <- mysqldump
     - shell:
         cmd: "mkdir -p {{service_root}}/data && wp db export --allow-root {{service_root}}/data/export.sql"

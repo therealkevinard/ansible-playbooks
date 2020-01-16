@@ -14,6 +14,6 @@
   tasks:
     - name: build makefile
       template:
-        src: files/Makefile.{{platform}}.j2
+        src: files/Makefile.{{platform}}.j2 # @todo: platform doesn't really work here - should be more like centos|docker
         dest: "{{remote_root}}/.{{ops_prefix}}_{{inventory_hostname}}.mk"
         backup: yes
