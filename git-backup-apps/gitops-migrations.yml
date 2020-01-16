@@ -6,7 +6,7 @@
 - name: kubernetes migrations
   hosts: '{{inventory_host}}'
   serial:
-    - 4
+    - 8
 
   # xxx vars should be passed in via extra-vars, a la `ansible-playbook -i ${inventory_file} --extra-vars "@run-vars.json" -vv gitops-migrations.yml`
   vars:
