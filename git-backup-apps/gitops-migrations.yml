@@ -99,10 +99,10 @@
         state: absent
 
     #------/ repair any permissions we may have touched
-    - name: repair/reset permissions...
-      shell: |
-        find . -type d | while read folder ; do chmod 755 "$folder" ; done
-        find . -type f | while read file ; do chmod 644 "$file" ; done
-        exit 0
-      args:
-        chdir: "{{docroot}}"
+#    - name: repair/reset permissions...
+#      shell: |
+#        find . -type d | while read folder ; do chmod 755 "$folder" ; done
+#        find . -type f | while read file ; do chmod 644 "$file" ; done
+#        exit 0
+#      args:
+#        chdir: "{{docroot}}"
