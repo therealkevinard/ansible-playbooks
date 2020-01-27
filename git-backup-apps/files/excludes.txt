@@ -1,0 +1,16 @@
+# Excluded Files
+
+# archives
+- *.gz
+- *.zip
+- wp-snapshots
+
+# system
+- .listing
+- error_log
+
+# installable
+- node_modules
+
+# no submodules
+- .git

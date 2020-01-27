@@ -28,21 +28,21 @@
 
 # remove revisr and legacy docroot gitops
 # @todo: This doesn't really belong in this playbook. Prune it out once the legacy setups are phased-out
-- name: Remove Legacy Devops
-  block:
-    - shell: wp plugin uninstall revisr --allow-root --deactivate
-      ignore_errors: yes
-      args:
-        chdir: "{{docroot}}"
-    - file:
-        path: "{{docroot}}/.git"
-        state: absent
-    - file:
-        path: "{{docroot}}/_rwmops"
-        state: absent
-    - file:
-        path: "{{docroot}}/wp-content/uploads/revisr-backups"
-        state: absent
+#- name: Remove Legacy Devops
+#  block:
+#    - shell: wp plugin uninstall revisr --allow-root --deactivate
+#      ignore_errors: yes
+#      args:
+#        chdir: "{{docroot}}"
+#    - file:
+#        path: "{{docroot}}/.git"
+#        state: absent
+#    - file:
+#        path: "{{docroot}}/_rwmops"
+#        state: absent
+#    - file:
+#        path: "{{docroot}}/wp-content/uploads/revisr-backups"
+#        state: absent
 
 - name: Vacate Service Directory
   block:
@@ -57,45 +57,28 @@
 
 - name: Refill Service Directory
   block:
+    - name: Prepare dir tree
+      block:
+        - file:
+            path: "{{service_root}}/data"
+            state: directory
+        - file:
+            path: "{{service_root}}/docroot"
+            state: directory
+
     # data <- mysqldump
     - shell:
-        cmd: "mkdir -p {{service_root}}/data && wp db export --allow-root {{service_root}}/data/export.sql"
+        cmd: "wp db export --allow-root {{service_root}}/data/export.sql"
       args:
         chdir: "{{docroot}}"
 
     #-- file ops use synchronize (rsync wrapper) with delegation to remote. effectively: rsync local-local
-    # config <- wp-config
-    - synchronize:
-        src: "{{docroot}}/wp-config.php"
-        dest: "{{service_root}}/config/"
-        rsync_opts:
-          - "--exclude=node_modules"
-          - "--exclude=.git"
-      delegate_to: "{{ inventory_hostname }}"
+    # full docroot
+    - copy:
+        src: 'files/excludes.txt'
+        dest: '{{docroot}}/.rsync-filter'
 
-    # plugins <- themes
     - synchronize:
-        src: "{{docroot}}/wp-content/plugins/"
-        dest: "{{service_root}}/plugins/"
-        rsync_opts:
-          - "--exclude=node_modules"
-          - "--exclude=.git"
-      delegate_to: "{{ inventory_hostname }}"
-
-      # themes <- themes
-    - synchronize:
-        src: "{{docroot}}/wp-content/themes/"
-        dest: "{{service_root}}/themes/"
-        rsync_opts:
-          - "--exclude=node_modules"
-          - "--exclude=.git"
-      delegate_to: "{{ inventory_hostname }}"
-
-    # media <- uploads
-    - synchronize:
-        src: "{{docroot}}/wp-content/uploads/"
-        dest: "{{service_root}}/media/"
-        rsync_opts:
-          - "--exclude=.git"
-          - "--exclude=node_modules"
+        src: "{{docroot}}/"
+        dest: "{{service_root}}/docroot"
       delegate_to: "{{ inventory_hostname }}"
