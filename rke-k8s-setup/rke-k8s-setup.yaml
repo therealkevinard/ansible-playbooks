@@ -1,10 +1,21 @@
 # Bootstrap the local CLI tools, etc needed to work with an rke k8s cluster
 # Needs privilege-escalation to install `jq` and work in the global $PATH dir
 # @todo: I guess this _could_ be re-done to use a non-sudo user path added in .bashrc :thinking_face:
+
 # Run via:
-#   USERPASS='your_sudo_password' # use single-quotes, because you probably have special chars
-#   ansible-playbook rke-k8s-setup.yaml -e "ansible_sudo_pass='${USERPASS}'" # full book
-#   ansible-playbook rke-k8s-setup.yaml -e "ansible_sudo_pass='${USERPASS}'" --tags "kustomize" # only specific tags
+#  #-- need your password
+#  USERPASS='your_sudo_password'
+#
+#  #-- specific tag(s)
+#  ansible-playbook \
+#  rke-k8s-setup.yaml \
+#  -e "ansible_sudo_pass='${USERPASS}'" \
+#  --tags "minikube"
+#
+#  #-- full playbook
+#  ansible-playbook \
+#  rke-k8s-setup.yaml \
+#  -e "ansible_sudo_pass='${USERPASS}'"
 # You may or may not need to create a ~/.kube/config file from your rancher cluster dashboard
 # @todo: would be better to check installed version before blindly calling get_url
 
@@ -31,6 +42,13 @@
       become: yes
 
     - block:
+        - name: Install minikube
+          include_tasks: "tasks/minikube.yaml"
+      become: yes
+      tags:
+        - minikube
+
+    - block:
         - name: Install kubectl
           include_tasks: "tasks/kubectl.yaml"
       become: yes
@@ -49,12 +67,12 @@
       tags:
         - kompose
 
-# @todo: this should be configurable - kustomize is built into kubectl (`-k` argument)
-#    - block:
-#        - name: Install kustomize
-#          include_tasks: "tasks/kustomize.yaml"
-#      tags:
-#        - kustomize
+    # @todo: this should be configurable - kustomize is built into kubectl (`-k` argument)
+    #    - block:
+    #        - name: Install kustomize
+    #          include_tasks: "tasks/kustomize.yaml"
+    #      tags:
+    #        - kustomize
 
     - block:
         - name: Install helm

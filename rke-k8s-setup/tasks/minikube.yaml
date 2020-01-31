@@ -1,0 +1,13 @@
+- get_url:
+    url: "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64"
+    dest: "{{bindir}}/minikube"
+
+- file:
+    path: "{{bindir}}/minikube"
+    mode: '0755'
+
+- blockinfile:
+    path: "{{bashrc}}"
+    marker: "# {mark} ansible - minikube completion"
+    block: source <(minikube completion bash)
+
