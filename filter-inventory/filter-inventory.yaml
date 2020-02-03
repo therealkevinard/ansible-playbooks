@@ -1,8 +1,0 @@
-- name: Filter Inventory
-  gather_facts: no
-  hosts: wordpress:&digitalocean
-
-  tasks:
-
-    - debug:
-        var: "{{inventory_hostname}}"

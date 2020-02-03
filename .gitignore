@@ -1,2 +1,3 @@
-git-backup-apps/run_vars.yml
-git-backup-apps/run.sh
+/.local
+/.logs
+Makefile
